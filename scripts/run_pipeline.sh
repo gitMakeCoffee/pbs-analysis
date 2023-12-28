@@ -12,7 +12,7 @@ set -e
 BIN_SIZE=5000
 GENOME="hg19"
 BIN_OUTPUT_PREFIX="output"
-BIN_OUTPUT_SUFFIX="binned"
+BIN_OUTPUT_SUFFIX="bins"
 RESCALED_OUTPUT_SUFFIX="map_scaled"
 SNR_OUTPUT_SUFFIX="snr.txt"
 CNV_OUTPUT_SUFFIX="binned_final"
@@ -26,27 +26,27 @@ REFS_DIR="${SCRIPTS_DIR}/../references"
 while [ $# -gt 0 ]
 do
     case $1 in
-        -f)
+        -f) # Path to bam file
             shift
             BAM=$1
             shift
             ;;
-        -w)
+        -w) # Bin size
             shift
             BIN_SIZE=$1
             shift
             ;;
-        -g)
+        -g) # Genome
             shift
             GENOME=$1
             shift
             ;;
-        -n)
+        -n) # Prefix, use sample name
             shift
             BIN_OUTPUT_PREFIX=$1
             shift
             ;;
-        -s)
+        -s) # Suffix for binning step
             shift
             BIN_OUTPUT_SUFFIX=$1
             shift
@@ -114,14 +114,27 @@ do
 done
 
 GC_CONTENT_FILENAME="${REFS_DIR}/${GENOME}_${BIN_SIZE}_gc.bed"  
+echo ""
 
 
-# binning
-time "${SCRIPTS_DIR}/binning/bin.sh" -f $BAM -n $BIN_OUTPUT_PREFIX -s $BIN_OUTPUT_SUFFIX -w $BIN_SIZE -g $GENOME
 
-echo "Binning COMPLETE"
-BED_FILENAME=${BIN_OUTPUT_PREFIX}_${BIN_OUTPUT_SUFFIX}.bed
-echo $BED_FILENAME
+
+
+
+
+
+# Binning
+echo "===== BINNING ====="
+time ${SCRIPTS_DIR}/binning/bin.sh -f $BAM -n $BIN_OUTPUT_PREFIX -s $BIN_OUTPUT_SUFFIX -w $BIN_SIZE -g $GENOME
+BED_FILENAME=${BIN_OUTPUT_PREFIX}_${GENOME}_${BIN_SIZE}bp_${BIN_OUTPUT_SUFFIX}.bed
+echo "
+Binning COMPLETE
+"
+
+
+
+
+
 
 # rescaling and signal to noise ratio
 RESCALED_OUTPUT=${BIN_OUTPUT_PREFIX}_${RESCALED_OUTPUT_SUFFIX}.bed

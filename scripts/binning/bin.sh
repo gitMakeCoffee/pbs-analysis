@@ -113,7 +113,8 @@ fi
 # Make reference if not available
 ref="${REFS_DIR}/${gen}_${bin}_tiles.bed"
 if [ ! -f $ref ]; then
-	"${SCRIPT_DIR}/makeBins.R" $gen $bin
+	echo "Generating bin coordinates for $gen / $bin bp..."
+	Rscript ${SCRIPT_DIR}/makeBins.R $gen $bin
 fi
 
 # Check first read
@@ -121,8 +122,10 @@ pairs=$(cat <(samtools view -H $bam) <(samtools view $bam | head -n 1) | samtool
 paired=$([ "$pairs" == 1 ] && echo "true" || echo "false")
 
 if [[ $paired == true ]]; then
+	echo "Paired-end sequencing detected"
 	igv_args="--pairs"
 else
+	echo "Single-end sequencing detected. Fragment length: $modalLen bp"
 	seq=$(samtools view $bam | head -n 1 | cut -f 10)
 	LEN=${#seq}
 
@@ -130,21 +133,15 @@ else
 fi
 
 # IGVTools count
-echo -e "Running command:\n\
-    [igvtools count -w $bin --minMapQuality 1 $igv_args $bam ${prefix}.wig $gen]"
-
-igvtools count -w $bin --minMapQuality 1 $igv_args $bam ${prefix}.wig $gen
+echo "Generating wig file..."
+igvtools count -w $bin --minMapQuality 1 $igv_args $bam ${prefix}.wig $gen 2> igvtools_err.log # When ran offline, generates multiple warnings
 
 # WigToBigWig
-echo -e "Running command:\n\
-    [wigToBigWig ${prefix}.wig "${REFS_DIR}/${gen}.chrom.sizes" ${prefix}.bw]"
-
+echo "Converting wig to bigwig..."
 wigToBigWig ${prefix}.wig "${REFS_DIR}/${gen}.chrom.sizes" ${prefix}.bw
+echo "Done"
 
 # BigWigAverageOverBed
-echo -e "Running command:\n\
-    [paste $ref <(bigWigAverageOverBed ${prefix}.bw $ref stdout | cut -f 5) | awk 'BEGIN{FS="\t"; OFS="\t"}; {print \$1, \$2, \$3, \$7}' > ${prefix}_${suffix}.bed]"
-paste $ref <(bigWigAverageOverBed ${prefix}.bw $ref stdout | cut -f 5) | awk 'BEGIN{FS="\t"; OFS="\t"}; {print $1, $2, $3, $7}' > ${prefix}_${suffix}.bed
-
-# Clean up intermediate files
-rm ${prefix}.wig ${prefix}.bw
+echo "Computing bin averages..."
+paste $ref <(bigWigAverageOverBed ${prefix}.bw $ref stdout | cut -f 5) | awk 'BEGIN{FS="\t"; OFS="\t"}; {print $1, $2, $3, $7}' > ${prefix}_${gen}_${bin}bp_${suffix}.bed 
+echo "Done"
