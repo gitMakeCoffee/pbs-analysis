@@ -13,7 +13,7 @@ BIN_SIZE=5000
 GENOME="hg19"
 BIN_OUTPUT_PREFIX="output"
 BIN_OUTPUT_SUFFIX="bins"
-RESCALED_OUTPUT_SUFFIX="map_scaled"
+RESCALED_OUTPUT_SUFFIX="mappability_rescaled"
 SNR_OUTPUT_SUFFIX="snr.txt"
 CNV_OUTPUT_SUFFIX="binned_final"
 CNV_FLAG_FILENAME_SUFFIX="cnv_flag.txt"
@@ -125,7 +125,7 @@ echo ""
 
 # Binning
 echo "===== BINNING ====="
-time ${SCRIPTS_DIR}/binning/bin.sh -f $BAM -n $BIN_OUTPUT_PREFIX -s $BIN_OUTPUT_SUFFIX -w $BIN_SIZE -g $GENOME
+#time ${SCRIPTS_DIR}/binning/bin.sh -f $BAM -n $BIN_OUTPUT_PREFIX -s $BIN_OUTPUT_SUFFIX -w $BIN_SIZE -g $GENOME
 BED_FILENAME=${BIN_OUTPUT_PREFIX}_${GENOME}_${BIN_SIZE}bp_${BIN_OUTPUT_SUFFIX}.bed
 echo "
 Binning COMPLETE
@@ -135,14 +135,18 @@ Binning COMPLETE
 
 
 
-
-# rescaling and signal to noise ratio
+# Mappability rescaling and signal to noise ratio
+echo "===== MAPPABILITY RESCALING AND SIGNAL TO NOISE RATIO ====="
 RESCALED_OUTPUT=${BIN_OUTPUT_PREFIX}_${RESCALED_OUTPUT_SUFFIX}.bed
 SNR_OUTPUT=${BIN_OUTPUT_PREFIX}_${SNR_OUTPUT_SUFFIX}
-time "${SCRIPTS_DIR}/rescaling/SubmitRescaleBinnedFiles.R" --bam_filename $BAM --binned_bed_filename $BED_FILENAME --genome $GENOME \
-#--output_filename $RESCALED_OUTPUT --snr_output_filename $SNR_OUTPUT
-echo "Mappability rescaling COMPLETE"
-echo $RESCALED_OUTPUT
+Rscript ${SCRIPTS_DIR}/rescaling/SubmitRescaleBinnedFiles.R --bam_filename $BAM --binned_bed_filename $BED_FILENAME --genome $GENOME --output_filename $RESCALED_OUTPUT --snr_output_filename $SNR_OUTPUT
+echo "
+Mappability rescaling COMPLETE
+"
+
+
+
+
 
 # cnv_rescaling
 CNV_RESCALED_OUTPUT=${BIN_OUTPUT_PREFIX}_${CNV_OUTPUT_SUFFIX}.bed

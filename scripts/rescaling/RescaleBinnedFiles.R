@@ -7,13 +7,18 @@ suppressPackageStartupMessages(library(data.table))
 
 RescaleXY <- function(bin_df){
   if(!('chrY' %in% bin_df$chr)){
+    cat("No coverage for chrY, skipping XY rescaling.\n")
     return(bin_df)
   }
   # is this a male sample?
   if('chrX' %in% bin_df$chr & mean(bin_df$counts[bin_df$chr == 'chrY'])/mean(bin_df$counts[bin_df$chr == 'chrX']) > 0.5){
-    print('Male donor')
+    #
+    print('Sample predicted as male, doubling gonosome counts...\n')
     bin_df$counts[bin_df$chr == 'chrX'] <- 2*bin_df$counts[bin_df$chr == 'chrX']
     bin_df$counts[bin_df$chr == 'chrY'] <- 2*bin_df$counts[bin_df$chr == 'chrY']
+  }
+  else {
+    cat("No coverage for chrX, skipping XY rescaling.\n")
   }
   return(bin_df)
 }
@@ -86,6 +91,9 @@ GetMapFileParameters <- function(binned_filename, genome = 'hg19', avail_gen = c
                          '--chromSizes', chrom_sizes,
                          '--saveFilename', map_filename)
     system(sys_command)
+  }
+  else {
+    cat("Mappability file found in reference folder:", map_filename, "\n")
   }
   return(map_filename)
 }

@@ -26,8 +26,9 @@ sys_command <- paste(file.path(script.dir, 'read_stats.sh'),  '-f', opts$bam_fil
 read_stats <- system(sys_command, intern = TRUE)
 
 paired <- read_stats[1] == 1
-#paired <- read_stats[1] == 2
 read_length <- as.numeric(read_stats[2])
+cat("Paired-end sequencing:", paired, "\n")
+cat("Read length:", read_length, "bp\n")
 
 # identify appropriate mappability file
 map_filename <- GetMapFileParameters(binned_filename = opts$binned_bed_filename, genome = opts$genome,
@@ -36,20 +37,26 @@ map_filename <- GetMapFileParameters(binned_filename = opts$binned_bed_filename,
                                      map_file_directory = refs.dir,
                                      binning_script_filename = bin_map_script)
 
+# Import data from binning step
 bin_df <- fread(input = opts$binned_bed_filename, col.names = c('chr', 'start', 'stop', 'counts'),
                 data.table = FALSE, stringsAsFactors = FALSE)
 
 # rescale by mappability
+cat("Rescaling by mappability...\n")
 map_df <- fread(input = map_filename, col.names = c('chr', 'start', 'stop', 'score'),
                 data.table = FALSE, stringsAsFactors = FALSE)
 bin_df <- RescaleMappability(bin_df = bin_df, map_df = map_df)
+cat("Done\n")
 
 # if X and Y chromosomes haven't been removed with mappability file, rescale them.
+cat("Rescaling gonosomes...\n")
 if('chrX' %in% bin_df$chr){
-  bin_df <- RescaleXY(bin_df = bin_df)
+  bin_df <- RescaleXY(bin_df = bin_df) # NEED TO REWRITE
 }
+cat("Done \n")
 
 # save file
+cat("Saving mappability-rescaled bins file...\n")
 if(is.null(opts$output_filename)){
   output_filename <- gsub(pattern = 'binned.bed', replacement = 'map_scaled.bed', x = opts$binned_bed_filename)
 } else{
@@ -59,6 +66,7 @@ if(is.null(opts$output_filename)){
 write.table(x = bin_df, file = output_filename, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = '\t')
 
 # get signal to noise ratio filename
+cat("Saving signal-to-noise ratio file...\n")
 if(is.null(opts$snr_output_filename)) {
   snr_output_filename <- gsub(pattern = 'binned.bed', replacement = 'snr.txt', x = opts$binned_bed_filename)
 } else {
