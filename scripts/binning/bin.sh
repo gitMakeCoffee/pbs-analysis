@@ -134,7 +134,7 @@ fi
 
 # IGVTools count
 echo "Generating wig file..."
-igvtools count -w $bin --minMapQuality 1 $igv_args $bam ${prefix}.wig $gen 2> igvtools_err.log # When ran offline, generates multiple warnings
+igvtools count -w $bin --minMapQuality 1 $igv_args $bam ${prefix}.wig $gen 2> ${prefix}_igvtools_err.log # When ran offline, generates multiple warnings, redirect to file
 
 # WigToBigWig
 echo "Converting wig to bigwig..."

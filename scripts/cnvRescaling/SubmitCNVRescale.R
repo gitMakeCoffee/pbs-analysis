@@ -32,6 +32,7 @@ opt_list <- list(make_option('--binned_bed_filename'),
 opts <- parse_args(OptionParser(option_list = opt_list))
 
 if(is.null(opts$euploid_reference_filename)){
+  # This ill always run, as not provided in run_pipeline.sh
   euploid_reference_filename <- data.frame('beta' = opts$simulate_beta, 'k' = opts$simulate_k, stringsAsFactors = FALSE)
 } else{
   euploid_reference_filename <- opts$euploid_reference_filename
@@ -40,13 +41,14 @@ if(is.null(opts$euploid_reference_filename)){
 is_input_control <- as.logical(opts$is_input_control)
 
 if(is.null(opts$cnv_rescale_output)){
-  save_location <- gsub(pattern = '.bed', replacement = '_cnv_rescaled.bed', x = opts$binned_bed_filename)
+  save_location <- gsub(pattern = '.bedGraph', replacement = '_cnv_rescaled.bedGraph', x = opts$binned_bed_filename)
 } else{
   save_location <- opts$cnv_rescale_output
 }
 
 # add option to bypass cnv calculation step
 if(opts$bypass_cnv_rescaling_step){
+  cat("Skipping CNV rescaling step (user input)")
   corrected_df <- fread(input = opts$binned_bed_filename, header = FALSE, stringsAsFactors = FALSE, data.table = FALSE)
  } else{
 # put this in a try-catch statement
@@ -57,12 +59,14 @@ if(opts$bypass_cnv_rescaling_step){
                                      saved_gc_filename = opts$saved_gc_filename, save_folder = refs.dir, 
                                      cnv_flag_output_filename = opts$cnv_flag_output_filename), error = function(c) 'error')
 }
-print(head(corrected_df))
+
 # handle errors outside tryCatch (a little more readable this way)
 if(is.data.frame(corrected_df)){
   if(!is.null(opts$cnv_rescale_success_output)){
     write.table(x = 'true', file = opts$cnv_rescale_success_output, quote = FALSE, row.names = FALSE, col.names = FALSE)
   }
+  # Output of the CNVrescale step, containing CNV-rescaled bins, into file named save_location
+  cat("CNV-rescaling successful, saving output: ", save_location, "\n")
   write.table(x = corrected_df, file = save_location, quote = FALSE, sep = '\t', row.names = FALSE, col.names = FALSE)
 } else{
   if(!is.null(opts$cnv_rescale_success_output)){
@@ -80,8 +84,3 @@ if(is.data.frame(corrected_df)){
   # write empty cnv_rescaled file
   write.table(x = '', file = save_location, quote = FALSE, sep = '\t', row.names = FALSE, col.names = FALSE)
 }
-
-
-
-
-

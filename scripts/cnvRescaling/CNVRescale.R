@@ -24,22 +24,25 @@ RescaleBinnedFileCNV <- function(bin_df_filename, is_input_control = FALSE, cnv_
                                  meta_bin_size = 50, n_windows = 10, saved_gc_filename = './references/hg19_5000_gc.bed',
                                  save_folder = 'references', cnv_flag_output_filename = NULL,
                                  cnv_rescale_success_filename = NULL) {
+  sampleName <- gsub(x = bin_df_filename, pattern = '_mappability_rescaled.bedGraph', replacement = '')
   bin_df <- fread(input = bin_df_filename, col.names = c('chr', 'start', 'end', 'counts'),
                   stringsAsFactors = FALSE, data.table = FALSE)
   bin_size <- bin_df$end[1] - bin_df$start[1]
   if(is_input_control){
+    cat("Sample is input control. Testing for CNVs...")
     # only test somatic chromosomes (leave out X and Y)
     cnv_flag <- GetCNVFlagIdx(bin_df_filename = bin_df %>% dplyr::filter(chr %in% paste0('chr', 1:22)), bin_size = bin_size, meta_bin_size = meta_bin_size,
-                              n_windows = n_windows)
+                              n_windows = n_windows, save_flag_location = sampleName)
     if(!is.null(cnv_flag_output_filename)){
-      write(x = ifelse(test = cnv_flag$p_value < 0.05, yes = "true", no = "false"), file = cnv_flag_output_filename)
+      write(x = ifelse(test = cnv_flag$p_value < 0.05, yes = "CNVs detected", no = "No CNVs detected"), file = cnv_flag_output_filename)
     }
     if(cnv_flag$p_value < 0.05){
-      print('CNVs detected.')
+      cat('CNVs detected, correcting using CNAnorm...\n')
       out <- GetCNVWithCNAnorm(bin_size = bin_size, sample_filename = bin_df_filename,
                                reference_filename = euploid_reference_filename,
                                save_ratios_filename = cnv_ratios_filename, assembly = assembly, return_cnv_df = TRUE,
                                saved_gc_filename = saved_gc_filename, save_folder = save_folder)
+      cat("CNAnorm done\n")
       # in case a bin doesn't have the same end idx, only join by start
       bin_df <- left_join(x = bin_df, y = out[,c('chr', 'start', 'ratio.s.n')], by = c('chr', 'start'))
       # correct for NAs
@@ -47,6 +50,7 @@ RescaleBinnedFileCNV <- function(bin_df_filename, is_input_control = FALSE, cnv_
       bin_df$counts <- bin_df$counts/bin_df$ratio.s.n
       return(bin_df[,c('chr', 'start', 'end', 'counts')])
     } else{
+      cat("No CNVs detected\n")
       cnv_df <- bin_df[,c('chr','start', 'end')]
       cnv_df$ratio <- 1
       write.table(x = cnv_df, file = cnv_ratios_filename, sep = '\t', col.names = FALSE, row.names = FALSE, quote = FALSE)
@@ -70,8 +74,9 @@ RescaleBinnedFileCNV <- function(bin_df_filename, is_input_control = FALSE, cnv_
 # expect standard bed format (4 cols: chr, start, stop, counts)
 # meta_bin_size: how many bins should be averaged together
 # n_windows: how many windows to split genome to detect bimodality?
-GetCNVFlagIdx <- function(bin_df_filename, meta_bin_size = 50, n_windows = 10, plot_data = FALSE,
-                          bin_size = 5000, return_rounded_df = FALSE, save_flag_location = NULL){
+GetCNVFlagIdx <- function(bin_df_filename, meta_bin_size = 50, n_windows = 10, plot_data = TRUE,
+                          bin_size = 5000, return_rounded_df = FALSE, 
+                          save_flag_location = "FLAG"){
   if(!is.data.frame(bin_df_filename)){
     bin_df <- fread(input = bin_df_filename, col.names = c('chr', 'start', 'end', 'counts'),
                          stringsAsFactors = FALSE, data.table = FALSE)
@@ -87,16 +92,25 @@ GetCNVFlagIdx <- function(bin_df_filename, meta_bin_size = 50, n_windows = 10, p
   test_val <- rounded_df %>% dplyr::group_by(idx) %>% dplyr::summarise(p_value = dip.test(mean_counts)[[2]],
                                                                        D = dip.test(mean_counts)[[1]])
   if(plot_data){
-    plt <- ggplot(rounded_df, aes(x = mean_counts, y = ..density..)) + geom_histogram(binwidth = 0.05) + facet_wrap(~idx) +
+    plt <- ggplot(rounded_df, aes(x = mean_counts, y = after_stat(density))) + 
+      geom_histogram(binwidth = 0.05) + 
+      facet_wrap(~idx, nrow = 5, ncol = 2, scales = "free") +
+      scale_x_continuous(trans='log10') +
       theme_bw(base_size = 16)
-    print(plt)
+    counts_plot_name <- paste0(save_flag_location, "_counts_plot.png")
+    cat("Saving mean counts distribution:", counts_plot_name, "...\n")
+    ggsave(counts_plot_name, width = 8, height = 10)
+
   }
   if(!is.null(save_flag_location)){
-    write.table(x = test_val, file = save_flag_location, quote = FALSE, sep = '\t', row.names = FALSE, col.names = TRUE)
+    tests_name <- paste0(save_flag_location, "_multimodality_tests.tsv")
+    cat("Saving multimodality test results:", tests_name, "...\n")
+    write.table(x = test_val, file = tests_name, quote = FALSE, sep = '\t', row.names = FALSE, col.names = TRUE)
   }
   if(return_rounded_df){
     return(rounded_df)
   } else{
+    # Will run by default
     return(test_val[which.min(test_val$p_value),])
   }
 }
@@ -114,6 +128,7 @@ GetCNVWithCNAnorm <- function(bin_size = 5000, saved_gc_filename = NULL, assembl
   sample_df <- sample_df[sample_df[,sample_name] > 0,]
   # ok for reference_df to have more rows than sample because joining with left_join
   if(is.data.frame(reference_filename)){
+    # This will always run
     reference_df <- data.frame('chr' = sample_df$chr, 'start' = sample_df$start, 'end' = sample_df$end,
                                'V1' = rgamma(n = dim(sample_df)[1], shape = reference_filename$k, rate = reference_filename$beta),
                                stringsAsFactors = FALSE)
@@ -125,9 +140,10 @@ GetCNVWithCNAnorm <- function(bin_size = 5000, saved_gc_filename = NULL, assembl
   covData <- left_join(x = sample_df, y = reference_df, by = c('chr', 'start', 'end'))
   # correct for GC content in bins; GCcontent is in biovizBase; may need to be reloaded?
   if(file.exists(saved_gc_filename)){
+    cat("Using available GC content reference file:", saved_gc_filename, "\n")
     gc_df <- fread(input = saved_gc_filename, col.names = c('chr', 'start', 'end', 'gc'))
   } else{
-    print('Calculating GC content...')
+    # Will compute and save GC reference file
     gc_df <- GetGCContent(bed_filename = covData[,c('chr', 'start', 'end')], save_folder = save_folder, assembly = assembly, return_gc = TRUE)
   }
   covData <- left_join(x = covData, y = gc_df, by = c('chr', 'start', 'end'))
@@ -138,20 +154,20 @@ GetCNVWithCNAnorm <- function(bin_size = 5000, saved_gc_filename = NULL, assembl
   df <- data.frame(Chr=covData$chr, Pos=covData$start, Test=covData[,sample_name], Norm=covData[,reference_name],
                    GC=covData$gc)
   # this is the meat of the function
-  print('Calculating CNV ratios...')
+  cat('Calculating CNV ratios...\n')
   CN <- dataFrame2object(df) %>% gcNorm(.) %>% addSmooth(., lambda=7 ) %>% peakPloidy(., method='closest') %>%
           validation(.) %>% addDNACopy(.) %>% discreteNorm(.) %>% peakPloidy(., ploidyToTest = 12)
- # reattach dplyr
+  # reattach dplyr
   suppressPackageStartupMessages(library(dplyr))
-  if(!is.null(save_cnv_object_filename)){
-    saveRDS(object = CN, file = save_cnv_object_filename)
-#     function_call <- capture.output(print(match.call()))
-#     metadata_str <- paste(function_call, '\nsample_name =', sample_name, '\nsample_filename = ', sample_filename,
-#                           '\nreference_name =', reference_name, '\nreference_filename =', reference_filename,
-#                           '\nsave_filename =', save_filename)
-#     metadata_filename <- gsub(pattern = '.rds', replacement = '_fun_params.txt', x = save_filename)
-#     write(x = metadata_str, file = metadata_filename)
-  }
+ if(!is.null(save_cnv_object_filename)){
+   saveRDS(object = CN, file = save_cnv_object_filename)
+    function_call <- capture.output(print(match.call()))
+    metadata_str <- paste(function_call, '\nsample_name =', sample_name, '\nsample_filename = ', sample_filename,
+                          '\nreference_name =', reference_name, '\nreference_filename =', reference_filename,
+                          '\nsave_filename =', save_filename)
+    metadata_filename <- gsub(pattern = '.rds', replacement = '_fun_params.txt', x = save_filename)
+    write(x = metadata_str, file = metadata_filename)
+ }
   if(!is.null(save_ratios_filename)){
     cnv_df <- data.frame('chr' = CN@InData@Chr, 'start' = CN@InData@Pos,
                          'end' = CN@InData@Pos + bin_size,
@@ -162,6 +178,7 @@ GetCNVWithCNAnorm <- function(bin_size = 5000, saved_gc_filename = NULL, assembl
   if(return_cnv_df){
     return(cnv_df)
   }
+  
 }
 
 # use this function to make and save a GC content reference file
@@ -169,6 +186,7 @@ GetCNVWithCNAnorm <- function(bin_size = 5000, saved_gc_filename = NULL, assembl
 # saved file format: gc_content_<bin_size>_<assembly>
 GetGCContent <- function(bed_filename, save_folder = 'references', assembly = 'hg19', bin_size = 5000,
                          return_gc = FALSE){
+  cat("Computing GC reference file for", assembly, "/", bin_size, "bp ...\n")
   if("dplyr" %in% (.packages())){
     detach("package:dplyr", unload=TRUE)
   }
@@ -189,15 +207,16 @@ GetGCContent <- function(bed_filename, save_folder = 'references', assembly = 'h
     suppressPackageStartupMessages(library(BSgenome.Hsapiens.UCSC.hg38))
     gcContent <- GCcontent(BSgenome.Hsapiens.UCSC.hg38, as(binned_df, 'GRanges'))[,1]
   } else{
-    stop('genome assembly unavailable', call. = TRUE)
+    stop('Genome assembly unavailable', call. = TRUE)
   }
   binned_df$start <- binned_df$start - 1
   binned_df$gc <- gcContent
   if(!is.null(save_folder)){
     save_filename <- file.path(save_folder, paste0(assembly, '_', bin_size, '_gc.bed'))
+    cat("Saving reference GC file to:", save_filename, "\n")
     write.table(x = binned_df, file = save_filename, sep = '\t', quote = FALSE, row.names = FALSE, col.names = FALSE)
   }
-  library(dplyr)
+  suppressPackageStartupMessages(library(dplyr))
   if(return_gc){
     return(binned_df)
   }
