@@ -13,15 +13,16 @@ GetParameterCombinations <- function(beta_range = c(0.5, 1), k_range = c(18, 25)
   return(params_all)
 }
 
-GetMultiplotHistograms <- function(max_dens, beta, k, lambda, working_df, bin_width){
+GetMultiplotHistograms <- function(sample_name, max_dens, beta, k, lambda, working_df, bin_width){
   sim_df <- data.frame(x = seq(0, max_dens, length.out = 500),
                        y = dgamma(x = seq(0, max_dens, length.out = 500), shape = k, rate = beta))
   # plot data
-  plt <- ggplot(working_df, aes(x = counts, y = ..density..)) +
+  plt <- ggplot(working_df, aes(x = counts, y = after_stat(density))) +
     geom_histogram(position = 'identity', binwidth = bin_width, alpha = 0.5) +
     geom_line(data = sim_df, aes(x = x, y = y*lambda)) + scale_x_continuous(limits = c(0, max_dens)) +
-    ggtitle(label = paste('Bin counts histogram')) + theme_bw(base_size = 16)
-  print(plt)
+    ggtitle(label = sample_name) + theme_bw(base_size = 16)
+  ggsave(paste0(sample_name, "_fit_histogram.png"), width = 10, height = 10)
+  cat("Distribution fit plot saved:", paste0(sample_name, "_histogram_fit.png", "\n"))
 }
 
 cvm.test2 <- function(x, null="punif", ..., nullname) {
@@ -125,16 +126,19 @@ GetDistributionParameters <- function(working_df, lambda_range = seq(from = 0.6,
   return(optim_params)
 }
 
+# First function to run, first and only one called by SubmitFitDistributionWithCMV.R
 # get initial values from GetDistributionParameters with coarse-grained grid
-GetDistributionParametersWithOptim <- function(working_df, lambda_range = seq(0.6, 0.9, by = 0.1), length_out = 3,
+GetDistributionParametersWithOptim <- function(sampleName, working_df, lambda_range = seq(0.6, 0.9, by = 0.1), length_out = 3,
                                                fix_weight = TRUE, weight_value = 500, plot_data = FALSE, plot_terra = FALSE,
                                                bin_width = 0.05, max_dens = 10){
+  cat("Loading data...\n")
   counts_col <- grepl(pattern = 'count', x = names(working_df), ignore.case = TRUE)
   if(sum(counts_col) != 1){
     stop('Working_df must have exactly one column with a name similar to "counts".')
   }
   names(working_df)[counts_col] <- 'counts'
   working_df <- working_df %>% dplyr::filter(counts > 0)
+  cat("Computing distribution parameters...\n")
   params_init <- GetDistributionParameters(working_df = working_df, lambda_range = lambda_range, length_out = length_out)
   # set max and min vals for weight at far limit of distribution
   beta_init <- params_init$beta; k_init <- params_init$k; lambda_init <- params_init$lambda
@@ -142,6 +146,7 @@ GetDistributionParametersWithOptim <- function(working_df, lambda_range = seq(0.
     weight_value <- 0.99*max(working_df$counts)
   }
   # use optim to calculate parameters
+  cat("Running optim...\n")
   optim_params <- optim(par = c(beta_init, k_init, lambda_init),
                         fn = function(par){params_df <- data.frame(beta = par[1], k = par[2], lambda = par[3])
                         getCVMDistance(params_df = params_df,
@@ -152,14 +157,15 @@ GetDistributionParametersWithOptim <- function(working_df, lambda_range = seq(0.
                           rate = optim_params$par[1], lower.tail = FALSE) > 0.5)
   # plot data
   if(plot_data){
-    GetMultiplotHistograms(max_dens = max_dens, beta = optim_params$par[1], k = optim_params$par[2],
+    GetMultiplotHistograms(sample_name = sampleName, max_dens = max_dens, beta = optim_params$par[1], k = optim_params$par[2],
                            lambda = lambda, working_df = working_df, bin_width = bin_width)
   }
   # plot QC figure
   if(plot_terra){
-    makeQCPlot(working_df=working_df, beta = optim_params$par[1], k = optim_params$par[2])
+    makeQCPlot(sample_name = sampleName, working_df=working_df, beta = optim_params$par[1], k = optim_params$par[2])
   }
   # get fit quality metric
+  cat("Computing fit quality metrics...\n")
   params_df <- data.frame(beta = optim_params$par[1], k = optim_params$par[2], lambda = lambda)
   fit_quality <- findAreasWithPlot(working_df = working_df, params_df = params_df, xlim = max_dens, printGraph = FALSE)
   params_df$resid_area <- fit_quality$RH
@@ -186,7 +192,7 @@ findAreasWithPlot <- function(working_df, params_df, xlim = 10, filetitle = NULL
 }
 
 # Produce QC plot (for ENCODE Workshop)
-makeQCPlot <- function(working_df, beta, k){
+makeQCPlot <- function(sample_name, working_df, beta, k){
   working_df <- working_df[working_df$counts > 0, , drop=F]
   threshold <- quantile(x = working_df$counts, probs = 0.9999)
   APP_density <- density(x = working_df$counts[working_df$counts < threshold], adjust = 1, n = 10000)
@@ -207,15 +213,14 @@ makeQCPlot <- function(working_df, beta, k){
   empirical_density_df$metric[empirical_density_df$metric > first_zero_idx & !is.finite(empirical_density_df$metric)] <- 1
 
   # Plot
-  plt <- ggplot(working_df, aes(x = counts, y = ..density..)) + geom_histogram(binwidth = 0.05) + 
-    geom_line(data = empirical_density_df, aes(x = x, y = y, color = 'darkred'), size = 1) + 
-    theme_bw() + theme(text = element_text(size = 12)) + ggtitle(label = 'Distribution Fit') +
-    geom_line(data = fitted_density_df, aes(x = x, y = lambda*y, color = 'darkblue'), size = 1) +
-    geom_line(data = empirical_density_df, aes(x = x, y = metric, color = 'green'), size = 1) +
+  plt <- ggplot(working_df, aes(x = counts, y = after_stat(density))) + geom_histogram(binwidth = 0.05) + 
+    geom_line(data = empirical_density_df, aes(x = x, y = y, color = 'darkred'), linewidth = 1) + 
+    theme_bw() + theme(text = element_text(size = 12)) + ggtitle(label = sample_name) +
+    geom_line(data = fitted_density_df, aes(x = x, y = lambda*y, color = 'darkblue'), linewidth = 1) +
+    geom_line(data = empirical_density_df, aes(x = x, y = metric, color = 'green'), linewidth = 1) +
     scale_x_continuous(limits = c(0, 10)) + labs(x = 'Count', y = 'Density') +
     scale_color_manual(labels = c('Estimated', 'Empirical', 'Signal \nprobability'), name = '', 
                        values = c('salmon', 'turquoise', 'mediumpurple'))
-  pdf('fit.pdf')
-  print(plt)
-  dev.off()
+  ggsave(paste0(sample_name, "_fit_qc.png"), width = 10, height = 10)
+  cat('QC plot saved: ', paste0(sample_name, "_fit_qc.png"), "\n")
 }

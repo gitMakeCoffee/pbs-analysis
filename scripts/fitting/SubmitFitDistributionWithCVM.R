@@ -8,7 +8,8 @@ script.dir <- dirname(sub('--file=', '', args[grep('--file=', args)]))
 
 source(file.path(script.dir, 'FitDistributionWithCVM.R'))
 
-opt_list <- list(make_option('--binned_bed_filename'),
+opt_list <- list(make_option('--sample_name'), # For plotting
+                 make_option('--binned_bed_filename'),
                  make_option('--params_output'),
                  make_option('--max_dens', default = 10),
                  make_option('--plot_data', default = FALSE),
@@ -30,11 +31,9 @@ if(readLines(con = binned_bed_filename, n = 1) == ''){
   bin_df <- fread(input = binned_bed_filename, col.names = c('chr', 'start', 'end', 'counts'), data.table = FALSE,
                   stringsAsFactors = FALSE)
   
-  params_df <- GetDistributionParametersWithOptim(working_df = bin_df, lambda_range = opts$lambda_range,
+  params_df <- GetDistributionParametersWithOptim(sampleName = opts$sample_name, working_df = bin_df, lambda_range = opts$lambda_range,
                                                   length_out = opts$length_out, fix_weight = opts$fix_weight,
                                                   weight_value = opts$weight_value, plot_data = opts$plot_data,
                                                   plot_terra = opts$plot_terra, bin_width = opts$bin_width, max_dens = opts$max_dens)  
   write.table(x = params_df, file = save_filename, quote = FALSE, sep = '\t', row.names = FALSE, col.names = TRUE)
 }
-
-
