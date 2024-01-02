@@ -95,12 +95,12 @@ do
             BYPASS_CNV_RESCALING_STEP=$1
             shift
             ;;
-        --params_output)
+        --params_output) # Fitting step output
             shift
             PARAMS_OUTPUT=$1
             shift
             ;;
-        --pbs_output)
+        --pbs_output) # Final step
             shift
             PBS_OUTPUT=$1
             shift
@@ -159,9 +159,13 @@ echo "CNV rescaling COMPLETE
 # fitting
 echo "===== FITTING ====="
 PARAMS_OUTPUT="${BIN_OUTPUT_PREFIX}_fitting_params.tsv"
-time ${SCRIPTS_DIR}/fitting/SubmitFitDistributionWithCVM.R --binned_bed_filename $CNV_RESCALED_OUTPUT --sample_name $BIN_OUTPUT_PREFIX --params_output $PARAMS_OUTPUT --plot_data TRUE --plot_terra TRUE
-echo "Fitting COMPLETE"
+#time ${SCRIPTS_DIR}/fitting/SubmitFitDistributionWithCVM.R --binned_bed_filename $CNV_RESCALED_OUTPUT --sample_name $BIN_OUTPUT_PREFIX --params_output $PARAMS_OUTPUT --plot_data TRUE --plot_terra TRUE
+echo "Fitting COMPLETE
+"
 
 # calculate PBS
-#time "${SCRIPTS_DIR}/pbs/SubmitProbabilityBeingSignal.R" --binned_bed_filename $CNV_RESCALED_OUTPUT --params_df_filename $PARAMS_OUTPUT --pbs_filename $PBS_OUTPUT
-#echo "Calculating PBS COMPLETE"
+echo "===== PBS ====="
+PBS_OUTPUT="${BIN_OUTPUT_PREFIX}_PBS.bedGraph"
+${SCRIPTS_DIR}/pbs/SubmitProbabilityBeingSignal.R --binned_bed_filename $CNV_RESCALED_OUTPUT --params_df_filename $PARAMS_OUTPUT --pbs_filename $PBS_OUTPUT
+echo "Calculating PBS COMPLETE
+"

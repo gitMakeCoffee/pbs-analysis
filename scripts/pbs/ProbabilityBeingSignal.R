@@ -18,6 +18,7 @@ GetProbabilityBeingSignal <- function(bin_df_filename, params_df_filename, pbs_f
   } else{
     params_df <- params_df_filename
   }
+  cat("Computing PBS...\n")
   working_df <- bin_df[bin_df$counts > 0,]
   threshold <- quantile(x = working_df$counts[working_df$chr %in% paste0('chr', 1:22)], probs = 0.9999)
   APP_density <- density(x = working_df$counts[working_df$counts < threshold], adjust = 1, n = 10000)
@@ -52,26 +53,26 @@ GetProbabilityBeingSignal <- function(bin_df_filename, params_df_filename, pbs_f
   }
   if(plot_distribution_fit_only){
     median_countss <- median(working_df$counts)
-    plt1 <- ggplot(working_df, aes(x = counts, y = ..density..)) + geom_histogram(binwidth = 0.01, fill = 'grey66') +
-      geom_line(data = empirical_density_df, aes(x = x, y = y, color = 'lightgreen'), size = 1) +
+    plt1 <- ggplot(working_df, aes(x = counts, y = after_stat(density))) + geom_histogram(binwidth = 0.01, fill = 'grey66') +
+      geom_line(data = empirical_density_df, aes(x = x, y = y, color = 'lightgreen'), linewidth = 1) +
       theme_bw(base_size = 24) + ggtitle(label = title_str) +
-      geom_line(data = fitted_density_df, aes(x = x, y = lambda*y, color = 'salmon'), size = 1) +
+      geom_line(data = fitted_density_df, aes(x = x, y = lambda*y, color = 'salmon'), linewidth = 1) +
       geom_vline(linetype = 'dotted', color = 'black', xintercept = median_countss) +
       scale_x_continuous(limits = c(0, max_dens)) + labs(x = 'Count', y = 'Density') +
       scale_color_manual(labels = c('Empirical', 'Estimated'), name = '',
                          values = c('blue', 'mediumpurple'))
   } else{
-    plt1 <- ggplot(working_df, aes(x = counts, y = ..density..)) + geom_histogram(binwidth = 0.05, fill = 'grey66') +
-      geom_line(data = empirical_density_df, aes(x = x, y = y, color = 'lightgreen'), size = 1) +
+    plt1 <- ggplot(working_df, aes(x = counts, y = after_stat(density))) + geom_histogram(binwidth = 0.05, fill = 'grey66') +
+      geom_line(data = empirical_density_df, aes(x = x, y = y, color = 'lightgreen'), linewidth = 1) +
       theme_bw(base_size = 16) + ggtitle(label = title_str) +
-      geom_line(data = fitted_density_df, aes(x = x, y = lambda*y, color = 'salmon'), size = 1) +
-      geom_line(data = empirical_density_df, aes(x = x, y = pbs, color = 'lightblue'), size = 1) +
+      geom_line(data = fitted_density_df, aes(x = x, y = lambda*y, color = 'salmon'), linewidth = 1) +
+      geom_line(data = empirical_density_df, aes(x = x, y = pbs, color = 'lightblue'), linewidth = 1) +
       scale_x_continuous(limits = c(0, max_dens)) + labs(x = 'Counts', y = 'Density') +
       scale_color_manual(labels = c('PBS', 'Empirical', 'Estimated'), name = '',
                          values = c('orange', 'blue', 'mediumpurple'))
   }
   if(plot_data){
-    print(plt1)
+    ggsave(plot = plt1, filename="RM.png", width = 8, height = 8)
   }
   if(return_bin_df & return_plt){
     return(list('bin_df' = bin_df, 'pbs_plt' = plt1))

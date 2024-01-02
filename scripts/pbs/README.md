@@ -4,7 +4,7 @@ The probability of being signal (PBS) is a value between 0 and 1 assigned to eac
 Interpreting ChIP-seq data with PBS has several advantages.  First, it considerably simplifies comparing datasets with different read depths, since values are internally normalized compared to the per-dataset background distribution.  Additionally, differentially enriched regions can be easily identified by subtracting two lists of per-bin PBS values.  This increased robustness, however, comes at the cost of lost resolution: PBS is calculated for every 5 kB, and it provides little information about a "strong" vs "very strong" vs "weak" signal, for example.  However, when used in conjunction with other methods, it can provide valuable genomic insight.
 
 ### Inputs ###
---binned_bed_filename Binned bed file from binning step of pipeline
+--binned_bed_filename Binned bed file from CNV rescaling step of pipeline.  
 --params_df_filename Text file containing parameters of estimated gamma distribution (shape, rate, lambda) from fitting step of pipeline.  
 --pbs_filename Output filename for calculated PBS
 
