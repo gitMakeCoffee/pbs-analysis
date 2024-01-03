@@ -3,9 +3,8 @@
 set -e
 
 # Required inputs:
-# -f, --is_input_control, --params_output, --pbs_output
-# -f is the filename of the BAM, IS_INPUT_CONTROL indicates whether the BAM is a WCE/input control
-# PARAMS_OUTPUT and PBS_OUTPUT are the filenames for the final outputs of the pipeline
+# -f, -n, -g, --is_input_control
+
 
 
 # DEFAULTS:
@@ -22,6 +21,9 @@ BYPASS_CNV_RESCALING_STEP=FALSE
 SCRIPTS_DIR=$(dirname "$0")
 REFS_DIR="${SCRIPTS_DIR}/../references"
 
+
+
+# Argument parsing
 while [ $# -gt 0 ]
 do
     case $1 in
@@ -117,19 +119,21 @@ echo ""
 
 
 
-
+echo "RUNNING PBS
+"
 
 
 
 
 # Binning
 echo "===== BINNING ====="
-# ${SCRIPTS_DIR}/binning/bin.sh -f $BAM -n $BIN_OUTPUT_PREFIX -s $BIN_OUTPUT_SUFFIX -w $BIN_SIZE -g $GENOME
-BED_FILENAME=${BIN_OUTPUT_PREFIX}_${GENOME}_${BIN_SIZE}bp_${BIN_OUTPUT_SUFFIX}.bed
+#${SCRIPTS_DIR}/binning/bin.sh -f $BAM -n $BIN_OUTPUT_PREFIX -s $BIN_OUTPUT_SUFFIX -w $BIN_SIZE -g $GENOME
+BED_FILENAME=${BIN_OUTPUT_PREFIX}_${GENOME}_${BIN_SIZE}bp_${BIN_OUTPUT_SUFFIX}.bedGraph
 echo "Binning COMPLETE
 "
 
 
+sleep 1
 
 
 
@@ -137,10 +141,13 @@ echo "Binning COMPLETE
 echo "===== MAPPABILITY RESCALING AND SIGNAL TO NOISE RATIO ====="
 RESCALED_OUTPUT=${BIN_OUTPUT_PREFIX}_${RESCALED_OUTPUT_SUFFIX}.bedGraph
 SNR_OUTPUT=${BIN_OUTPUT_PREFIX}_${SNR_OUTPUT_SUFFIX}
-# Rscript ${SCRIPTS_DIR}/rescaling/SubmitRescaleBinnedFiles.R --bam_filename $BAM --binned_bed_filename $BED_FILENAME --genome $GENOME --output_filename $RESCALED_OUTPUT --snr_output_filename $SNR_OUTPUT
+Rscript ${SCRIPTS_DIR}/rescaling/SubmitRescaleBinnedFiles.R --bam_filename $BAM --binned_bed_filename $BED_FILENAME --genome $GENOME --output_filename $RESCALED_OUTPUT --snr_output_filename $SNR_OUTPUT
 echo "Mappability rescaling COMPLETE
 "
 
+
+
+sleep 1
 
 
 
@@ -156,6 +163,10 @@ echo "CNV rescaling COMPLETE
 
 
 
+sleep 1
+
+
+
 # fitting
 echo "===== FITTING ====="
 PARAMS_OUTPUT="${BIN_OUTPUT_PREFIX}_fitting_params.tsv"
@@ -163,9 +174,16 @@ PARAMS_OUTPUT="${BIN_OUTPUT_PREFIX}_fitting_params.tsv"
 echo "Fitting COMPLETE
 "
 
+
+
+sleep 1
+
+
+
+
 # calculate PBS
 echo "===== PBS ====="
 PBS_OUTPUT="${BIN_OUTPUT_PREFIX}_PBS.bedGraph"
-${SCRIPTS_DIR}/pbs/SubmitProbabilityBeingSignal.R --binned_bed_filename $CNV_RESCALED_OUTPUT --params_df_filename $PARAMS_OUTPUT --pbs_filename $PBS_OUTPUT
+#${SCRIPTS_DIR}/pbs/SubmitProbabilityBeingSignal.R --binned_bed_filename $CNV_RESCALED_OUTPUT --params_df_filename $PARAMS_OUTPUT --pbs_filename $PBS_OUTPUT
 echo "Calculating PBS COMPLETE
 "

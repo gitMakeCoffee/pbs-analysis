@@ -134,14 +134,16 @@ fi
 
 # IGVTools count
 echo "Generating wig file..."
-igvtools count -w $bin --minMapQuality 1 $igv_args $bam ${prefix}.wig $gen 2> ${prefix}_igvtools_err.log # When ran offline, generates multiple warnings, redirect to file
+igvtools count -w $bin --minMapQuality 1 $igv_args $bam ${prefix}_coverage.wig $gen 2> ${prefix}_igvtools_err.log # When ran offline, generates multiple warnings, redirect to file
+sleep 0.5 
 
 # WigToBigWig
 echo "Converting wig to bigwig..."
-wigToBigWig ${prefix}.wig "${REFS_DIR}/${gen}.chrom.sizes" ${prefix}.bw
-echo "Done"
+wigToBigWig ${prefix}_coverage.wig "${REFS_DIR}/${gen}.chrom.sizes" ${prefix}_coverage.bw
 
 # BigWigAverageOverBed
 echo "Computing bin averages..."
-paste $ref <(bigWigAverageOverBed ${prefix}.bw $ref stdout | cut -f 5) | awk 'BEGIN{FS="\t"; OFS="\t"}; {print $1, $2, $3, $7}' > ${prefix}_${gen}_${bin}bp_${suffix}.bed 
-echo "Done"
+paste $ref <(bigWigAverageOverBed ${prefix}_coverage.bw $ref stdout | cut -f 5) | awk 'BEGIN{FS="\t"; OFS="\t"}; {print $1, $2, $3, $7}' > ${prefix}_${gen}_${bin}bp_${suffix}.bedGraph 
+
+# Delete wig
+rm ${prefix}_coverage.wig
