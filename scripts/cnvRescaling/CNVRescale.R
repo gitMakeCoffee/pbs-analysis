@@ -9,7 +9,7 @@ suppressPackageStartupMessages(library(data.table))
 suppressPackageStartupMessages(library(diptest))
 # packages for CNANorm
 suppressPackageStartupMessages(library(CNAnorm))
-#suppressPackageStartupMessages(library(Rsubread))
+#suppressPackageStartupMessages(library(Rsubread)) # nolint
 #suppressPackageStartupMessages(library(BSgenome.Hsapiens.UCSC.hg19))
 # this package does not exist in the RStudio on the Broad server; moved load package to RescaledBinnedFileCNV function
 #suppressPackageStartupMessages(library(BSgenome.Hsapiens.UCSC.hg38))
@@ -29,9 +29,10 @@ RescaleBinnedFileCNV <- function(bin_df_filename, is_input_control = FALSE, cnv_
                   stringsAsFactors = FALSE, data.table = FALSE)
   bin_size <- bin_df$end[1] - bin_df$start[1]
   if(is_input_control){
-    cat("Sample is input control. Testing for CNVs...")
+    cat("Sample is input control. Testing for CNVs...\n")
     # only test somatic chromosomes (leave out X and Y)
-    cnv_flag <- GetCNVFlagIdx(bin_df_filename = bin_df %>% dplyr::filter(chr %in% paste0('chr', 1:22)), bin_size = bin_size, meta_bin_size = meta_bin_size,
+    cnv_flag <- GetCNVFlagIdx(bin_df_filename = bin_df %>% dplyr::filter(chr %in% paste0('chr', 1:22)), 
+                              bin_size = bin_size, meta_bin_size = meta_bin_size,
                               n_windows = n_windows, save_flag_location = sampleName)
     if(!is.null(cnv_flag_output_filename)){
       write(x = ifelse(test = cnv_flag$p_value < 0.05, yes = "CNVs detected", no = "No CNVs detected"), file = cnv_flag_output_filename)
@@ -173,6 +174,7 @@ GetCNVWithCNAnorm <- function(bin_size = 5000, saved_gc_filename = NULL, assembl
                          'end' = CN@InData@Pos + bin_size,
                          'ratio.s.n' = CN@DerivData@ratio.s.n)
     cnv_df <- cnv_df %>% dplyr::mutate(ratio.s.n = ifelse(test = is.na(ratio.s.n), yes = 1, no = ratio.s.n))
+    cat("Saving CNV ratios:", save_ratios_filename, "\n")
     write.table(x = cnv_df, file = save_ratios_filename, sep = '\t', col.names = FALSE, row.names = FALSE, quote = FALSE)
   }
   if(return_cnv_df){
