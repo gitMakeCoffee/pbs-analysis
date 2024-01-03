@@ -119,7 +119,7 @@ echo ""
 
 
 
-echo "RUNNING PBS
+echo "Running PBS on $BIN_OUTPUT_PREFIX
 "
 
 
@@ -127,7 +127,7 @@ echo "RUNNING PBS
 
 # Binning
 echo "=== BINNING ==="
-#${SCRIPTS_DIR}/binning/bin.sh -f $BAM -n $BIN_OUTPUT_PREFIX -s $BIN_OUTPUT_SUFFIX -w $BIN_SIZE -g $GENOME
+${SCRIPTS_DIR}/binning/bin.sh -f $BAM -n $BIN_OUTPUT_PREFIX -s $BIN_OUTPUT_SUFFIX -w $BIN_SIZE -g $GENOME
 BED_FILENAME=${BIN_OUTPUT_PREFIX}_${GENOME}_${BIN_SIZE}bp_${BIN_OUTPUT_SUFFIX}.bedGraph
 echo "Binning COMPLETE
 "
@@ -141,7 +141,7 @@ sleep 1
 echo "=== MAPPABILITY RESCALING ==="
 RESCALED_OUTPUT=${BIN_OUTPUT_PREFIX}_${RESCALED_OUTPUT_SUFFIX}.bedGraph
 SNR_OUTPUT=${BIN_OUTPUT_PREFIX}_${SNR_OUTPUT_SUFFIX}
-#Rscript ${SCRIPTS_DIR}/rescaling/SubmitRescaleBinnedFiles.R --bam_filename $BAM --binned_bed_filename $BED_FILENAME --genome $GENOME --output_filename $RESCALED_OUTPUT --snr_output_filename $SNR_OUTPUT
+Rscript ${SCRIPTS_DIR}/rescaling/SubmitRescaleBinnedFiles.R --bam_filename $BAM --binned_bed_filename $BED_FILENAME --genome $GENOME --output_filename $RESCALED_OUTPUT --snr_output_filename $SNR_OUTPUT
 echo "Mappability rescaling COMPLETE
 "
 
@@ -157,7 +157,7 @@ echo "=== CNV RESCALING ==="
 CNV_RESCALED_OUTPUT=${BIN_OUTPUT_PREFIX}_${CNV_OUTPUT_SUFFIX}.bedGraph
 CNV_FLAG_OUTPUT_FILENAME=${BIN_OUTPUT_PREFIX}_${CNV_FLAG_FILENAME_SUFFIX}
 CNV_RESCALE_SUCCESS_OUTPUT=${BIN_OUTPUT_PREFIX}_cnv_rescale_success.txt
-#Rscript ${SCRIPTS_DIR}/cnvRescaling/SubmitCNVRescale.R --binned_bed_filename $RESCALED_OUTPUT --is_input_control $IS_INPUT_CONTROL --cnv_ratios_filename $CNV_RATIOS_FILENAME --assembly $GENOME --cnv_rescale_output $CNV_RESCALED_OUTPUT --saved_gc_filename $GC_CONTENT_FILENAME --cnv_flag_output_filename $CNV_FLAG_OUTPUT_FILENAME --cnv_rescale_success_output $CNV_RESCALE_SUCCESS_OUTPUT --bypass_cnv_rescaling_step $BYPASS_CNV_RESCALING_STEP
+Rscript ${SCRIPTS_DIR}/cnvRescaling/SubmitCNVRescale.R --binned_bed_filename $RESCALED_OUTPUT --is_input_control $IS_INPUT_CONTROL --cnv_ratios_filename $CNV_RATIOS_FILENAME --assembly $GENOME --cnv_rescale_output $CNV_RESCALED_OUTPUT --saved_gc_filename $GC_CONTENT_FILENAME --cnv_flag_output_filename $CNV_FLAG_OUTPUT_FILENAME --cnv_rescale_success_output $CNV_RESCALE_SUCCESS_OUTPUT --bypass_cnv_rescaling_step $BYPASS_CNV_RESCALING_STEP
 echo "CNV rescaling COMPLETE
 "
 
@@ -171,7 +171,7 @@ sleep 1
 # fitting
 echo "=== FITTING ==="
 PARAMS_OUTPUT="${BIN_OUTPUT_PREFIX}_fitting_params.tsv"
-#${SCRIPTS_DIR}/fitting/SubmitFitDistributionWithCVM.R --binned_bed_filename $CNV_RESCALED_OUTPUT --sample_name $BIN_OUTPUT_PREFIX --params_output $PARAMS_OUTPUT --plot_terra TRUE
+${SCRIPTS_DIR}/fitting/SubmitFitDistributionWithCVM.R --binned_bed_filename $CNV_RESCALED_OUTPUT --sample_name $BIN_OUTPUT_PREFIX --params_output $PARAMS_OUTPUT --plot_terra TRUE
 echo "Fitting COMPLETE
 "
 

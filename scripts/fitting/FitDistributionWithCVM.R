@@ -131,7 +131,6 @@ GetDistributionParameters <- function(working_df, lambda_range = seq(from = 0.6,
 GetDistributionParametersWithOptim <- function(sampleName, working_df, lambda_range = seq(0.6, 0.9, by = 0.1), length_out = 3,
                                                fix_weight = TRUE, weight_value = 500, plot_data = FALSE, plot_terra = FALSE,
                                                bin_width = 0.05, max_dens = 10){
-  cat("Loading data...\n")
   counts_col <- grepl(pattern = 'count', x = names(working_df), ignore.case = TRUE)
   if(sum(counts_col) != 1){
     stop('Working_df must have exactly one column with a name similar to "counts".')
