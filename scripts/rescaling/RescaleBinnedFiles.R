@@ -7,7 +7,7 @@ suppressPackageStartupMessages(library(data.table))
 
 RescaleXY <- function(bin_df){
   if(!('chrY' %in% bin_df$chr)){
-    cat("No coverage for chrY, skipping XY rescaling.\n")
+    cat("WARNING: No coverage for chrY, skipping XY rescaling.\n")
     return(bin_df)
   }
   # is this a male sample?
@@ -18,7 +18,7 @@ RescaleXY <- function(bin_df){
     bin_df$counts[bin_df$chr == 'chrY'] <- 2*bin_df$counts[bin_df$chr == 'chrY']
   }
   else {
-    cat("No coverage for chrX, skipping XY rescaling.\n")
+    cat("WARNING: No coverage for chrX, skipping XY rescaling.\n")
   }
   return(bin_df)
 }

@@ -46,27 +46,23 @@ cat("Rescaling by mappability...\n")
 map_df <- fread(input = map_filename, col.names = c('chr', 'start', 'stop', 'score'),
                 data.table = FALSE, stringsAsFactors = FALSE)
 bin_df <- RescaleMappability(bin_df = bin_df, map_df = map_df)
-cat("Done\n")
 
 # if X and Y chromosomes haven't been removed with mappability file, rescale them.
 cat("Rescaling gonosomes...\n")
 if('chrX' %in% bin_df$chr){
   bin_df <- RescaleXY(bin_df = bin_df) # NEED TO REWRITE
 }
-cat("Done \n")
 
 # save file
-cat("Saving mappability-rescaled bins file...\n")
 if(is.null(opts$output_filename)){
   output_filename <- gsub(pattern = 'binned.bed', replacement = 'map_scaled.bed', x = opts$binned_bed_filename)
 } else{
   output_filename <- opts$output_filename
 }
-
+cat("Saving mappability-rescaled bins file:", output_filename, "\n")
 write.table(x = bin_df, file = output_filename, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = '\t')
 
 # get signal to noise ratio filename
-cat("Saving signal-to-noise ratio file...\n")
 if(is.null(opts$snr_output_filename)) {
   snr_output_filename <- gsub(pattern = 'binned.bed', replacement = 'snr.txt', x = opts$binned_bed_filename)
 } else {
@@ -76,4 +72,5 @@ if(is.null(opts$snr_output_filename)) {
 # write signal to noise ratio; -1 if denominator is 0
 quantiles <- quantile(x = bin_df$counts, probs = c(0.1, 0.99))
 x <- if (quantiles[1] == 0) -1 else quantiles[2] / quantiles[1]
+cat("Saving signal-to-noise ratio file:", snr_output_filename, "\n")
 write(x = x, file = snr_output_filename)
