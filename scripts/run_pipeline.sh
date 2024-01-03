@@ -157,7 +157,7 @@ echo "===== CNV RESCALING ====="
 CNV_RESCALED_OUTPUT=${BIN_OUTPUT_PREFIX}_${CNV_OUTPUT_SUFFIX}.bedGraph
 CNV_FLAG_OUTPUT_FILENAME=${BIN_OUTPUT_PREFIX}_${CNV_FLAG_FILENAME_SUFFIX}
 CNV_RESCALE_SUCCESS_OUTPUT=${BIN_OUTPUT_PREFIX}_cnv_rescale_success.txt
-Rscript ${SCRIPTS_DIR}/cnvRescaling/SubmitCNVRescale.R --binned_bed_filename $RESCALED_OUTPUT --is_input_control $IS_INPUT_CONTROL --cnv_ratios_filename $CNV_RATIOS_FILENAME --assembly $GENOME --cnv_rescale_output $CNV_RESCALED_OUTPUT --saved_gc_filename $GC_CONTENT_FILENAME --cnv_flag_output_filename $CNV_FLAG_OUTPUT_FILENAME --cnv_rescale_success_output $CNV_RESCALE_SUCCESS_OUTPUT --bypass_cnv_rescaling_step $BYPASS_CNV_RESCALING_STEP
+#Rscript ${SCRIPTS_DIR}/cnvRescaling/SubmitCNVRescale.R --binned_bed_filename $RESCALED_OUTPUT --is_input_control $IS_INPUT_CONTROL --cnv_ratios_filename $CNV_RATIOS_FILENAME --assembly $GENOME --cnv_rescale_output $CNV_RESCALED_OUTPUT --saved_gc_filename $GC_CONTENT_FILENAME --cnv_flag_output_filename $CNV_FLAG_OUTPUT_FILENAME --cnv_rescale_success_output $CNV_RESCALE_SUCCESS_OUTPUT --bypass_cnv_rescaling_step $BYPASS_CNV_RESCALING_STEP
 echo "CNV rescaling COMPLETE
 "
 
@@ -171,7 +171,7 @@ sleep 1
 # fitting
 echo "===== FITTING ====="
 PARAMS_OUTPUT="${BIN_OUTPUT_PREFIX}_fitting_params.tsv"
-#time ${SCRIPTS_DIR}/fitting/SubmitFitDistributionWithCVM.R --binned_bed_filename $CNV_RESCALED_OUTPUT --sample_name $BIN_OUTPUT_PREFIX --params_output $PARAMS_OUTPUT --plot_data TRUE --plot_terra TRUE
+${SCRIPTS_DIR}/fitting/SubmitFitDistributionWithCVM.R --binned_bed_filename $CNV_RESCALED_OUTPUT --sample_name $BIN_OUTPUT_PREFIX --params_output $PARAMS_OUTPUT --plot_terra TRUE
 echo "Fitting COMPLETE
 "
 

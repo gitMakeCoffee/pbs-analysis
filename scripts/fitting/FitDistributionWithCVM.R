@@ -221,6 +221,6 @@ makeQCPlot <- function(sample_name, working_df, beta, k){
     scale_x_continuous(limits = c(0, 10)) + labs(x = 'Count', y = 'Density') +
     scale_color_manual(labels = c('Estimated', 'Empirical', 'Signal \nprobability'), name = '', 
                        values = c('salmon', 'turquoise', 'mediumpurple'))
+  cat('Saving QC plot:', paste0(sample_name, "_fit_qc.png"), "\n")
   ggsave(paste0(sample_name, "_fit_qc.png"), width = 10, height = 10)
-  cat('QC plot saved: ', paste0(sample_name, "_fit_qc.png"), "\n")
 }

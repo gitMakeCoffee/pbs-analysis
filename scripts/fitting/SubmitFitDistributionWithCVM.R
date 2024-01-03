@@ -34,6 +34,7 @@ if(readLines(con = binned_bed_filename, n = 1) == ''){
   params_df <- GetDistributionParametersWithOptim(sampleName = opts$sample_name, working_df = bin_df, lambda_range = opts$lambda_range,
                                                   length_out = opts$length_out, fix_weight = opts$fix_weight,
                                                   weight_value = opts$weight_value, plot_data = opts$plot_data,
-                                                  plot_terra = opts$plot_terra, bin_width = opts$bin_width, max_dens = opts$max_dens)  
+                                                  plot_terra = opts$plot_terra, bin_width = opts$bin_width, max_dens = opts$max_dens)
+  cat("Saving fitting parameters:", save_filename, "\n")                                                  
   write.table(x = params_df, file = save_filename, quote = FALSE, sep = '\t', row.names = FALSE, col.names = TRUE)
 }
